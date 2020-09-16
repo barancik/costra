@@ -10,11 +10,12 @@ https://github.com/pypa/sampleproject
 
 setup(
     name='costra',
-    version='0.1dev',
+    version='0.2dev',
     author='Petra Barancikova',
     author_email='barancikova@ufal.mff.cuni.cz',
     url='https://github.com/barancik/costra',
     packages=['costra'],
+    package_dir={'costra': 'costra'},
     package_data={'costra':['data/data.tsv']},
     include_package_data=True,
     license='Creative Commons Attribution-Noncommercial-Share Alike license',

@@ -40,10 +40,11 @@ Proceedings of the 23rd International Conference on Text, Speech and Dialogue (T
         2) sentence id: unique id for each seed, from which the sentence was derived.
         3) transformation 
         4) sentence
-        5) ids of more general/formal/in the past/non-standard/... sentences        
-        6) ids of less general/formal/in the past/non-standard/... sentences
-        7) ids of sentences too similar with respect to a selected criterion
-        8) ids of sentences too dissimilar with respect to a selected criterion
+        5) sentence tokenized using Morphodita (Strakova et al. 2014) 
+        6) ids of more general/formal/in the past/non-standard/... sentences        
+        7) ids of less general/formal/in the past/non-standard/... sentences
+        8) ids of sentences too similar with respect to a selected criterion
+        9) ids of sentences too dissimilar with respect to a selected criterion
                                                     
         Example:
         80	10	formal sentence	Čtyři mí příbuzní zesnuli.	83	79,82	78	
@@ -51,6 +52,7 @@ Proceedings of the 23rd International Conference on Text, Speech and Dialogue (T
         10 - sentence id of all sentences derived from the same seed sentence
         formal sentence - the type of transformation
         "Čtyři mí příbuzní zesnuli." - the sentence itself
+        "Čtyři mí příbuzní zesnuli ." - the tokenized sentence
         83 - a sentence with id 83 is more general than this sentence
         79,82 - sentences with ids 79,82 are less general than this sentence
         78 - a sentence with id 78 is too similar with regard to formalness
@@ -77,3 +79,6 @@ References
 Barancikova Petra, Bojar Ondrej: COSTRA 1.0: A Dataset of Complex Sentence Transformations. 
 Proceedings of the 12th International Conference on Language Resources and Evaluation (LREC 2020), 
 Paris, France, ISBN 979-10-95546-34-4, pp. 3535–3541, 2020.
+Strakova Jana, Straka Milan and Hajic Jan. Open-Source Tools for Morphology, Lemmatization, POS 
+Tagging and Named Entity Recognition. In Proceedings of 52nd Annual Meeting of the Association for 
+Computational Linguistics: System Demonstrations, pages 13-18, June 2014. 
