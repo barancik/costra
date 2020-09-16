@@ -7,15 +7,18 @@ from collections import defaultdict
 DATA_FILE = "../data/data.tsv"
 
 
-def get_sentences(data=DATA_FILE, tokenize=False):
+def get_sentences(data=DATA_FILE, tokenize=True):
     #TODO: Morphodita
     SENTENCES = []
     if not os.path.exists(data):
         print("Missing sentence file '{}'".format(data), file=sys.stderr)
     with open(data, "r") as sentence_file:
         for line in sentence_file:
-            idx, number, transformation, sentence, r1, r2, r3, r4 = line.strip('\n').split('\t')
-            SENTENCES.append(sentence)
+            idx, number, transformation, sentence, tokenized_sentence, r1, r2, r3, r4 = line.strip('\n').split('\t')
+            if tokenize:
+                SENTENCES.append(tokenized_sentence)
+            else:
+                SENTENCES.append(sentence)
     return SENTENCES
 
 
@@ -144,6 +147,8 @@ def evaluate(embeddings):
     generalization = ["generalization"]
     opposite_meaning = ["opposite meaning"]
 
+    print("transformation    accuracy")
+    print("--------------------------")
     _print_results(basic_changes, "basic", basic, CACHE)
     _print_results(modality, "modality", basic, CACHE)
     _print_results(time, "time", advanced, CACHE)
