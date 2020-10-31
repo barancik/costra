@@ -1,4 +1,4 @@
-Costra
+# Costra
 
 This is a tool for automatic evaluation of Czech sentence embeddings using Costra 1.1 dataset.
 
@@ -8,10 +8,8 @@ More information can be found in the following paper:
     Sentence Spaces*](https://doi.org/10.1007/978-3-030-58323-1_14). In:
     TSD 2020. Lecture Notes in Computer Science, vol 12284. Springer, Cham.
 
-Please cite the paper if you use this dataset in your research.
-
-Presentation of the paper with accompanying video can be found
-  [here](https://www.tsdconference.org/tsd2020/hall/paper_html/1075-omakox.php)
+The presentation of the paper with the accompanying video can be found
+  [here](https://www.tsdconference.org/tsd2020/hall/paper_html/1075-omakox.php).
 
 
 ## Installation
@@ -41,12 +39,9 @@ If you use the tool for academic purporses, please consider citing
 [the following paper](https://doi.org/10.1007/978-3-030-58323-1_14):
 
 ```bib
-@inproceedings{DBLP:conf/tsd/BarancikovaB20,
+@inproceedings{Costra,
   author    = {Petra Baranc{\'{\i}}kov{\'{a}} and Ondrej Bojar},
-  editor    = {Petr Sojka and
-               Ivan Kopecek and
-               Karel Pala and
-               Ales Hor{\'{a}}k},
+  editor    = {Petr Sojka and Ivan Kopecek and Karel Pala and Ales Hor{\'{a}}k},
   title     = {Costra 1.1: An Inquiry into Geometric Properties of Sentence Spaces},
   booktitle = {Text, Speech, and Dialogue - 23rd International Conference, {TSD}
                2020, Brno, Czech Republic, September 8-11, 2020, Proceedings},
@@ -62,4 +57,4 @@ If you use the tool for academic purporses, please consider citing
 
 ## License
 
-The data is distributed under the [Creative Commons 4.0 BY](https://creativecommons.org/licenses/by/4.0/)
+The data is distributed under the [Creative Commons 4.0 BY](https://creativecommons.org/licenses/by/4.0/).
