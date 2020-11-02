@@ -1,7 +1,8 @@
+"""Collection of various functions and function wrappers."""
+
 import numpy as np
 import os
 import pkg_resources
-import sys
 
 from collections import defaultdict
 
@@ -9,10 +10,14 @@ DATA_FILE = pkg_resources.resource_filename("costra","data/data.tsv")
 
 
 def get_sentences(data=DATA_FILE, tokenize=True):
-    #TODO: Morphodita
+    """Extract sentences from Costra 1.1. datafile to a list.
+    Arguments:
+        data: Path to Costra 1.1. datafile.
+        tokenize: Tokenized/Untokenized sentences.
+    """
     SENTENCES = []
     if not os.path.exists(data):
-        print("Missing sentence file '{}'".format(data), file=sys.stderr)
+        raise ValueError("Missing sentence file '{}'".format(data))
     with open(data, "r") as sentence_file:
         for line in sentence_file:
             idx, number, transformation, sentence, tokenized_sentence, r1, r2, r3, r4 = line.strip('\n').split('\t')
@@ -24,6 +29,10 @@ def get_sentences(data=DATA_FILE, tokenize=True):
 
 
 def _get_comparisons_1(idx, a, b):
+    """Collect comparisons of 1st type:
+       If A < B and B < C, do their vector reflect this linearity, i.e do sim(A,B) > sim(A,C) and
+       sim(B,C) > sim(A,C) hold?
+    """
     if len(a) == 0:
         return []
     if len(b) == 0:
@@ -39,6 +48,10 @@ def _get_comparisons_1(idx, a, b):
 
 
 def _get_comparisons_2(idx, a, b):
+    """Collect comparisons of 2nd type:
+       If A and B are too similar & B and C are too dissimilar, are vectors A and B closer to each
+       other than vectors B and C?
+    """
     if len(a) == 0:
         return []
     if len(b) == 0:
@@ -53,6 +66,10 @@ def _get_comparisons_2(idx, a, b):
 
 
 def _get_comparisons_3(idx, paraphrases, other):
+    """Collect basic comparisons:
+        Paraphrases should be closer to their seed than any transformation which significantly
+        changes the meaning of the seed or modality of the seed.
+    """
     out = []
     for p in paraphrases:
         for o in other:
@@ -60,15 +77,19 @@ def _get_comparisons_3(idx, paraphrases, other):
     return out
 
 
-def _get_comparisons(data=DATA_FILE):
-    # collecting two types of comparisons:
-    # - basic: paraphrase vs. significant change in meaning
-    # - advanced: comparisons based on the human judgement
+def _get_comparisons(data):
+    """ Collect two types of comparisons from the Costra 1.1. dataset:
+     - basic: paraphrase vs. significant change in meaning
+     - advanced: comparisons based on the human judgement
+    """
+
     basic = defaultdict(list)
     advanced = defaultdict(list)
+    size = 0
 
     # first round - collecting indices and seeds
     with open(data, "r") as phil:
+        size += 1
         current = 1
         roles = defaultdict(list)
         changes = {}
@@ -104,10 +125,10 @@ def _get_comparisons(data=DATA_FILE):
                 continue
         basic[role].extend(_get_comparisons_3(seed_idx, paraphrases, roles[role]))
 
-    return basic, advanced
+    return basic, advanced, size
 
 def cosine_similarity(a, b):
-    # Cosine similarity
+    # Compute cosine similarity
     dot = np.dot(a, b)
     norma = np.linalg.norm(a)
     normb = np.linalg.norm(b)
@@ -115,6 +136,7 @@ def cosine_similarity(a, b):
     return cos
 
 def _get_unique_pairs(comparisons1,comparisons2):
+    # Remove duplicate pairs
     unique_pairs = set()
     for pair in [x for y in comparisons1.values() for x in y]:
         unique_pairs.add(pair[0])
@@ -126,6 +148,7 @@ def _get_unique_pairs(comparisons1,comparisons2):
 
 
 def _print_results(transformations, transformation_name, comparison_source, CACHE):
+    # Compute accuracy and print result
     correct, total = 0, 0
     for transformation in transformations:
         for comparison in comparison_source[transformation]:
@@ -134,10 +157,23 @@ def _print_results(transformations, transformation_name, comparison_source, CACH
                 correct += 1
     print("%s %.3f" % (transformation_name.ljust(20), correct/ total))
 
-def evaluate(embeddings):
-    basic, advanced = _get_comparisons()
+def evaluate(embeddings, data=DATA_FILE):
+    """Evaluate the embeddings.
+    Arguments:
+        embeddings: Numpy.ndarray with sentence embeddings.
+        data: Path to Costra 1.1. datafile.
+    """
 
-    #There are repeated couples - caching the already counted distance
+    if not isinstance(embeddings,np.ndarray):
+        raise ValueError("Embeddings are expected in numpy.ndarray format.")
+
+    basic, advanced, size = _get_comparisons(data)
+
+    if size != embeddings.shape[0]:
+        raise ValueError("Size of embeddings doesn't match size of input data.")
+
+
+    # There are repeated pairs of sentences in different comparisons, already counted distance is cached.
     unique_pairs = _get_unique_pairs(basic,advanced)
     CACHE = {x:cosine_similarity(embeddings[x[0]],embeddings[x[1]]) for x in unique_pairs}
 
