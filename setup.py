@@ -1,16 +1,15 @@
 from setuptools import setup
+from os import path
 
-"""A setuptools based setup module.
-
-See:
-https://packaging.python.org/guides/distributing-packages-using-setuptools/
-https://github.com/pypa/sampleproject
-"""
+from os import path
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
 
 setup(
     name='costra',
-    version='0.2dev',
+    version='0.3dev',
     author='Petra Barancikova',
     author_email='barancikova@ufal.mff.cuni.cz',
     url='https://github.com/barancik/costra',
@@ -19,7 +18,8 @@ setup(
     package_data={'costra':['data/data.tsv']},
     include_package_data=True,
     license='Creative Commons Attribution-Noncommercial-Share Alike license',
-    long_description=open('README.md').read(),
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     keywords='embeddings evaluation',
 
     # Specify which Python versions you support. In contrast to the

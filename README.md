@@ -15,7 +15,7 @@ The presentation of the paper with the accompanying video can be found
 ## Installation
 
   ```bash
-  $ pip install -i https://test.pypi.org/simple/ costra==0.2.dev0
+  $ pip install -i https://test.pypi.org/simple/ costra==0.3.dev0
 
   ```
 
