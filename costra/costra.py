@@ -89,11 +89,11 @@ def _get_comparisons(data):
 
     # first round - collecting indices and seeds
     with open(data, "r") as phil:
-        size += 1
         current = 1
         roles = defaultdict(list)
         changes = {}
         for line in phil:
+            size += 1
             idx, number, transformation, sentence, tokenized_sentence, r1, r2, r3, r4 = line.strip('\n').split('\t')
             idx, number = int(idx), int(number)
             changes[idx] = transformation

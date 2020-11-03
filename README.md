@@ -15,7 +15,7 @@ The presentation of the paper with the accompanying video can be found
 ## Installation
 
   ```bash
-  $ pip install -i https://test.pypi.org/simple/ costra==0.3.dev0
+  $ pip install costra
 
   ```
 
@@ -40,8 +40,8 @@ If you use the tool for academic purporses, please consider citing
 
 ```bib
 @inproceedings{Costra,
-  author    = {Petra Baranc{\'{\i}}kov{\'{a}} and Ondrej Bojar},
-  editor    = {Petr Sojka and Ivan Kopecek and Karel Pala and Ales Hor{\'{a}}k},
+  author    = {Petra Baran{\v{\c}}{\'{\i}}kov{\'{a}} and Ond{\v{\r}}ej Bojar},
+  editor    = {Petr Sojka and Ivan Kope{\v{\c}}ek and Karel Pala and Ales Hor{\'{a}}k},
   title     = {Costra 1.1: An Inquiry into Geometric Properties of Sentence Spaces},
   booktitle = {Text, Speech, and Dialogue - 23rd International Conference, {TSD}
                2020, Brno, Czech Republic, September 8-11, 2020, Proceedings},
