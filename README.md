@@ -20,7 +20,7 @@ The presentation of the paper with the accompanying video can be found
   ```
 
 ## Usage
-1. You can get sentences from Costra using the following command:
+1. Get sentences from Costra:
 
 ```python
 from costra import costra
@@ -28,7 +28,7 @@ CostraEvaluator = costra.CostraEvaluator()
 sentences = CostraEvaluator.get_sentences()
 ```
 
-2) Use the sentences to generate your embeddings. E.g.:
+2) Generate embeddings (example with SentenceTransformers):
 
 ```python
 from sentence_transformers import SentenceTransformer
@@ -37,24 +37,27 @@ model = SentenceTransformer("Seznam/retromae-small-cs")
 embeddings = model.encode(sentences)
 ```
 
-3) Evaluating the embeddings in the following way:
+3) Evaluating the embeddings:
 
 ```python
-results = CE.evaluate(embeddings)
+results = CostraEvaluator.evaluate(embeddings)
 ```
 
-4) Results have the following format, with `costra` being the overall score
-for more detail about other categories, see the paper bellow.
-```
-basic: 0.063
-modality: 0.079
-time: 0.692
-style: 0.634
-generalization: 0.695
-opposite_meaning: 0.751
-costra: 0.486
+4) Results have the following format, with `costra` being the overall score.
+
+```python
+{
+    'basic': 0.063,
+    'modality': 0.079,
+    'time': 0.692,
+    'style': 0.634,
+    'generalization': 0.695,
+    'opposite_meaning': 0.751,
+    'costra': 0.486
+}
 ```
 
+For more detail about Costra categories, refer to the original paper.
 
 ## Citation
 
