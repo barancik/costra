@@ -24,18 +24,41 @@ The presentation of the paper with the accompanying video can be found
 
 ```python
 from costra import costra
-sentences = costra.get_sentences()
+CostraEvaluator = costra.CostraEvaluator()
+sentences = CostraEvaluator.get_sentences()
 ```
 
-2) Use the sentences to generate your embeddings. The embeddings are evaluating the following way:
+2) Use the sentences to generate your embeddings. E.g.:
 
 ```python
-costra.evaluate(YOUR_EMBEDDINGS)
+from sentence_transformers import SentenceTransformer
+
+model = SentenceTransformer("Seznam/retromae-small-cs")
+embeddings = model.encode(sentences)
 ```
+
+3) Evaluating the embeddings in the following way:
+
+```python
+results = CE.evaluate(embeddings)
+```
+
+4) Results have the following format, with `costra` being the overall score
+for more detail about other categories, see the paper bellow.
+```
+basic: 0.063
+modality: 0.079
+time: 0.692
+style: 0.634
+generalization: 0.695
+opposite_meaning: 0.751
+costra: 0.486
+```
+
 
 ## Citation
 
-If you use the tool for academic purporses, please consider citing
+If you use the tool, please consider citing
 [the following paper](https://doi.org/10.1007/978-3-030-58323-1_14):
 
 ```bib

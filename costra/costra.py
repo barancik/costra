@@ -1,194 +1,193 @@
-"""Collection of various functions and function wrappers."""
+#Costra: A library for evaluating sentence embeddings through comparative analysis.
+
+import os
+from collections import defaultdict
+from typing import Dict, List, Optional, Set, Tuple
 
 import numpy as np
-import os
+import pandas as pd
 import pkg_resources
 
-from collections import defaultdict
 
-DATA_FILE = pkg_resources.resource_filename("costra","data/data.tsv")
+class ComparisonCollector:
+    #Handles collection and organization of sentence comparisons.
+    
+    @staticmethod
+    def get_type1_comparisons(idx: int, a: str, b: str) -> List[Tuple[Tuple[int, int], Tuple[int, int]]]:
+        #Collect comparisons testing linear similarity relationships.
+        if pd.isna(a) or pd.isna(b):
+            return []
+            
+        comparisons = []
+        r1 = [int(x) for x in str(a).split(',') if x and x.strip()]
+        r2 = [int(x) for x in str(b).split(',') if x and x.strip()]
+        
+        for i in r1:
+            for j in r2:
+                comparisons.extend([
+                    ((idx, i), (i, j)),
+                    ((idx, j), (i, j))
+                ])
+        return comparisons
 
+    @staticmethod
+    def get_type2_comparisons(idx: int, a: str, b: str) -> List[Tuple[Tuple[int, int], Tuple[int, int]]]:
+        #Collect comparisons testing relative similarity relationships.
+        if pd.isna(a) or pd.isna(b):
+            return []
+            
+        r1 = [int(x) for x in str(a).split(",") if x and x.strip()]
+        r2 = [int(x) for x in str(b).split(",") if x and x.strip()]
+        
+        return [((idx, i), (idx, j)) for i in r1 for j in r2]
 
-def get_sentences(data=DATA_FILE, tokenize=True):
-    """Extract sentences from Costra 1.1. datafile to a list.
-    Arguments:
-        data: Path to Costra 1.1. datafile.
-        tokenize: Tokenized/Untokenized sentences.
-    """
-    SENTENCES = []
-    if not os.path.exists(data):
-        raise ValueError("Missing sentence file '{}'".format(data))
-    with open(data, "r") as sentence_file:
-        for line in sentence_file:
-            idx, number, transformation, sentence, tokenized_sentence, r1, r2, r3, r4 = line.strip('\n').split('\t')
-            if tokenize:
-                SENTENCES.append(tokenized_sentence)
-            else:
-                SENTENCES.append(sentence)
-    return SENTENCES
+    @staticmethod
+    def get_basic_comparisons(idx: int, paraphrases: List[int], others: List[int]) -> List[Tuple[Tuple[int, int], Tuple[int, int]]]:
+        #Collect basic paraphrase comparisons.
+        return [((idx, p), (idx, o)) for p in paraphrases for o in others]
 
+class CostraEvaluator:
+    #Main class for evaluating sentence embeddings using the Costra dataset.
+    
+    TRANSFORMATION_GROUPS = {
+        'basic': ["different meaning", "nonsense", "minimal change"],
+        'modality': ["ban", "possibility"],
+        'time': ["past", "future"],
+        'style': ["formal sentence", "nonstandard sentence", "simple sentence"],
+        'generalization': ["generalization"],
+        'opposite_meaning': ["opposite meaning"]
+    }
 
-def _get_comparisons_1(idx, a, b):
-    """Collect comparisons of 1st type:
-       If A < B and B < C, do their vector reflect this linearity, i.e do sim(A,B) > sim(A,C) and
-       sim(B,C) > sim(A,C) hold?
-    """
-    if len(a) == 0:
-        return []
-    if len(b) == 0:
-        return []
-    out = []
-    r1 = [int(x) for x in a.split(',')]
-    r2 = [int(x) for x in b.split(',')]
-    for i in r1:
-        for j in r2:
-            out.append([(idx, i), (i, j)])
-            out.append([(idx, j), (i, j)])
-    return out
+    def __init__(self, data_path: Optional[str] = None):
+        self.data_path = data_path or pkg_resources.resource_filename("costra", "data/data.tsv")
+        self._ensure_data_path_exists()
+        self.df = self._load_data()
+        
+    def _ensure_data_path_exists(self):
+        if not os.path.exists(self.data_path):
+            raise ValueError(f"Missing input sentence file: '{self.data_path}'")
+            
+    def _load_data(self) -> pd.DataFrame:
+        columns = ['idx', 'number', 'transformation', 'sentence', 'tokenized_sentence', 'r1', 'r2', 'r3', 'r4']
+        
+        df = pd.read_csv(
+            self.data_path, 
+            sep='\t', 
+            names=columns,
+            na_values=[''],  # Treat empty strings as NA
+            keep_default_na=True
+        )
+        
+        df['idx'] = df['idx'].astype(int)
+        df['number'] = df['number'].astype(int)
+        
+        for col in ['r1', 'r2', 'r3', 'r4']:
+            df[col] = df[col].fillna('')
+            
+        return df
 
+    def get_sentences(self, tokenize: bool = True) -> List[str]:
+        # Extract sentences from the Costra dataset
+        return self.df['tokenized_sentence' if tokenize else 'sentence'].tolist()
 
-def _get_comparisons_2(idx, a, b):
-    """Collect comparisons of 2nd type:
-       If A and B are too similar & B and C are too dissimilar, are vectors A and B closer to each
-       other than vectors B and C?
-    """
-    if len(a) == 0:
-        return []
-    if len(b) == 0:
-        return []
-    out = []
-    r1 = [int(x) for x in a.split(",")]
-    r2 = [int(x) for x in b.split(",")]
-    for i in r1:
-        for j in r2:
-            out.append([(idx, i), (idx, j)])
-    return out
+    def _collect_comparisons(self) -> Tuple[Dict, Dict, int]:
+        # Collect all comparison types from the dataset.
+        basic = defaultdict(list)
+        advanced = defaultdict(list)
+        size = len(self.df)
 
+        # Process data group by group
+        for number in self.df['number'].unique():
+            group = self.df[self.df['number'] == number]
+            
+            # Get seed and paraphrases
+            seed_row = group[group['transformation'] == 'seed'].iloc[0]
+            seed_idx = seed_row['idx']
+            paraphrases = group[group['transformation'] == 'paraphrase']['idx'].tolist()
+            
+            # Process each transformation type
+            for transformation in group['transformation'].unique():
+                if transformation in ('seed', 'paraphrase'):
+                    continue
+                    
+                others = group[group['transformation'] == transformation]['idx'].tolist()
+                basic[transformation].extend(
+                    ComparisonCollector.get_basic_comparisons(seed_idx, paraphrases, others)
+                )
+            
+            # Process advanced comparisons
+            for _, row in group.iterrows():
+                type1_comparisons = ComparisonCollector.get_type1_comparisons(
+                    row['idx'], row['r1'], row['r2']
+                )
+                
+                if row['transformation'] == 'seed':
+                    for c in type1_comparisons:
+                        target_transform = self.df.loc[self.df['idx'] == c[0][1], 'transformation'].iloc[0]
+                        advanced[target_transform].append(c)
+                else:
+                    advanced[row['transformation']].extend(type1_comparisons)
+                
+                type2_comparisons = ComparisonCollector.get_type2_comparisons(
+                    row['idx'], row['r3'], row['r4']
+                )
+                advanced[row['transformation']].extend(type2_comparisons)
 
-def _get_comparisons_3(idx, paraphrases, other):
-    """Collect basic comparisons:
-        Paraphrases should be closer to their seed than any transformation which significantly
-        changes the meaning of the seed or modality of the seed.
-    """
-    out = []
-    for p in paraphrases:
-        for o in other:
-            out.append([(idx, p), (idx, o)])
-    return out
+        return basic, advanced, size
 
+    @staticmethod
+    def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
+        return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
-def _get_comparisons(data):
-    """ Collect two types of comparisons from the Costra 1.1. dataset:
-     - basic: paraphrase vs. significant change in meaning
-     - advanced: comparisons based on the human judgement
-    """
+    def evaluate(self, embeddings: np.ndarray) -> Dict[str, float]:
+        # Evaluate sentence embeddings using the Costra dataset.
+        if not isinstance(embeddings, np.ndarray):
+            raise ValueError("Embeddings must be a numpy.ndarray")
 
-    basic = defaultdict(list)
-    advanced = defaultdict(list)
-    size = 0
+        basic, advanced, size = self._collect_comparisons()
+        
+        if size != embeddings.shape[0]:
+            raise ValueError(f"Embedding count ({embeddings.shape[0]}) doesn't match dataset size ({size})")
 
-    # first round - collecting indices and seeds
-    with open(data, "r") as phil:
-        current = 1
-        roles = defaultdict(list)
-        changes = {}
-        for line in phil:
-            size += 1
-            idx, number, transformation, sentence, tokenized_sentence, r1, r2, r3, r4 = line.strip('\n').split('\t')
-            idx, number = int(idx), int(number)
-            changes[idx] = transformation
-            if number != current:
-                seed_idx = int(roles['seed'][0])
-                paraphrases = [int(p_idx) for p_idx in roles['paraphrase']]
-                for role in roles:
-                    if role == 'seed' or role == 'paraphrase':
-                        continue
-                    basic[role].extend(_get_comparisons_3(seed_idx, paraphrases, roles[role]))
-                roles = defaultdict(list)
-                current = number
+        # Cache unique comparisons to speed up the process
+        unique_pairs = self._get_unique_sentence_pairs(basic, advanced)
+        similarity_cache = {
+            pair: self.cosine_similarity(embeddings[pair[0]], embeddings[pair[1]])
+            for pair in unique_pairs
+        }
 
-            roles[transformation].append(int(idx))
-            comparisons_1 = _get_comparisons_1(idx, r1, r2)
-            if transformation == 'seed':
-                for c in comparisons_1:
-                    advanced[changes[c[0][1]]].append(c)
-            else:
-                advanced[transformation].extend(comparisons_1)
-            comparisons_2 = _get_comparisons_2(idx, r3, r4)
-            advanced[transformation].extend(comparisons_2)
+        results = {}
+        for group_name, transformations in self.TRANSFORMATION_GROUPS.items():
+            comparison_source = basic if group_name in ('basic', 'modality') else advanced
+            correct, total = self._compute_accuracy(
+                transformations, comparison_source, similarity_cache)
+            results[group_name] = round(correct / total if total > 0 else 0.0, 3)
 
-        # final
-        seed_idx = int(roles['seed'][0])
-        paraphrases = [int(p_idx) for p_idx in roles['paraphrase']]
-        for role in roles:
-            if role == 'seed' or role == 'paraphrase':
-                continue
-        basic[role].extend(_get_comparisons_3(seed_idx, paraphrases, roles[role]))
+        # Final score is a simple average of all categories  
+        results["costra"] = round(sum(results.values()) / len(results), 3)
+        return results
 
-    return basic, advanced, size
+    @staticmethod
+    def _get_unique_sentence_pairs(comparisons1: Dict, comparisons2: Dict) -> Set[Tuple[int, int]]:
+        unique_pairs = set()
+        for pairs in comparisons1.values():
+            for pair in pairs:
+                unique_pairs.add(pair[0])
+                unique_pairs.add(pair[1])
+        for pairs in comparisons2.values():
+            for pair in pairs:
+                unique_pairs.add(pair[0])
+                unique_pairs.add(pair[1])
+        return unique_pairs
 
-def cosine_similarity(a, b):
-    # Compute cosine similarity
-    dot = np.dot(a, b)
-    norma = np.linalg.norm(a)
-    normb = np.linalg.norm(b)
-    cos = dot / (norma * normb)
-    return cos
-
-def _get_unique_pairs(comparisons1,comparisons2):
-    # Remove duplicate pairs
-    unique_pairs = set()
-    for pair in [x for y in comparisons1.values() for x in y]:
-        unique_pairs.add(pair[0])
-        unique_pairs.add(pair[1])
-    for pair in [x for y in comparisons2.values() for x in y]:
-        unique_pairs.add(pair[0])
-        unique_pairs.add(pair[1])
-    return unique_pairs
-
-
-def _print_results(transformations, transformation_name, comparison_source, CACHE):
-    # Compute accuracy and print result
-    correct, total = 0, 0
-    for transformation in transformations:
-        for comparison in comparison_source[transformation]:
-            total += 1
-            if CACHE[comparison[0]] > CACHE[comparison[1]]:
-                correct += 1
-    print("%s %.3f" % (transformation_name.ljust(20), correct/ total))
-
-def evaluate(embeddings, data=DATA_FILE):
-    """Evaluate the embeddings.
-    Arguments:
-        embeddings: Numpy.ndarray with sentence embeddings.
-        data: Path to Costra 1.1. datafile.
-    """
-
-    if not isinstance(embeddings,np.ndarray):
-        raise ValueError("Embeddings are expected in numpy.ndarray format.")
-
-    basic, advanced, size = _get_comparisons(data)
-
-    if size != embeddings.shape[0]:
-        raise ValueError("Size of embeddings doesn't match size of input data.")
-
-
-    # There are repeated pairs of sentences in different comparisons, already counted distance is cached.
-    unique_pairs = _get_unique_pairs(basic,advanced)
-    CACHE = {x:cosine_similarity(embeddings[x[0]],embeddings[x[1]]) for x in unique_pairs}
-
-    basic_changes = ["different meaning", "nonsense", "minimal change"]
-    modality = ["ban","possibility"]
-    time = ["past","future"]
-    style = ["formal sentence","nonstandard sentence","simple sentence"]
-    generalization = ["generalization"]
-    opposite_meaning = ["opposite meaning"]
-
-    print("transformation    accuracy")
-    print("--------------------------")
-    _print_results(basic_changes, "basic", basic, CACHE)
-    _print_results(modality, "modality", basic, CACHE)
-    _print_results(time, "time", advanced, CACHE)
-    _print_results(style, "style", advanced, CACHE)
-    _print_results(generalization, "generalization", advanced, CACHE)
-    _print_results(opposite_meaning, "opposite meaning", advanced, CACHE)
+    @staticmethod
+    def _compute_accuracy(transformations: List[str], 
+                         comparison_source: Dict, 
+                         cache: Dict) -> Tuple[int, int]:
+        correct = total = 0
+        for transformation in transformations:
+            for comparison in comparison_source[transformation]:
+                total += 1
+                if cache[comparison[0]] > cache[comparison[1]]:
+                    correct += 1
+        return correct, total
